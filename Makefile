@@ -1,13 +1,14 @@
 .PHONY: refresh_foreign
 
 data/trials_02_trimmed.RData: R/01_clean_up_eyetracking.R data/trials_01_raw.RData
-	Rscript R/01_clean_up_eyetracking.R
+	Rscript $<
 
 data/trials_01_raw.RData: R/00_get_eyetracking.R
-	Rscript R/00_get_eyetracking.R
+	Rscript $<
 
-R/01_clean_up_eyetracking.R: logs/initialize_logger.R
-R/00_get_eyetracking.R: logs/initialize_logger.R
+# Refresh all R scripts if logger utility is updated
+R/*.R: logs/initialize_logger.R
+	touch $@
 
 refresh_foreign:
 	touch R/00_get_eyetracking.R
