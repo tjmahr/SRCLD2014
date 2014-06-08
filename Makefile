@@ -1,5 +1,8 @@
 .PHONY: refresh_foreign
 
+data/scores.csv: R/00_get_scores.R
+	Rscript $<
+
 data/trials_02_trimmed.RData: R/01_clean_up_eyetracking.R data/trials_01_raw.RData
 	Rscript $<
 
