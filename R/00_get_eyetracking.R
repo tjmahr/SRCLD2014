@@ -2,7 +2,9 @@ library("plyr")
 library("dplyr")
 library("lookr")
 source("//cifs/l2t/Scripts/LWL_Shared.R", chdir = TRUE)
+
 source("logs/initialize_logger.R")
+logger <- create.logger(logfile = "logs/00_get_eyetracking.log", level = log4r:::INFO)
 info(logger, "Loading raw eye-tracking data")
 
 # Set package options

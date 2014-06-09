@@ -1,5 +1,8 @@
 .PHONY: refresh_foreign
 
+data/merged.RData: R/03_make_model_data.R data/binned_looks.csv data/scores.csv
+	Rscript $<
+
 data/binned_looks.csv: R/02_make_elogits.R data/trials_02_trimmed.RData
 	Rscript $<
 

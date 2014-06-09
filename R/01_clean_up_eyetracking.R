@@ -1,7 +1,9 @@
 library("plyr")
 library("dplyr")
 library("ggplot2")
+
 source("logs/initialize_logger.R")
+logger <- create.logger(logfile = "logs/01_clean_up_eyetracking.log", level = log4r:::INFO)
 info(logger, "Cleaning eyetracking data")
 
 compute_prop_na <- function(xs) mean(is.na(xs))
@@ -19,7 +21,7 @@ headcount <- function(df) {
 clean_gaze_info <- list(
   input_file = "data/trials_01_raw.RData",
   missing_data_cutoff = .5,
-  min_n_trials = 24,
+  min_n_trials = 20,
   output_file = "data/trials_02_trimmed.RData")
 log_list(clean_gaze_info)
 

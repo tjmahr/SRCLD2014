@@ -2,9 +2,11 @@ library("lookr")
 library("dplyr",  warn.conflicts = FALSE)
 library("ggplot2")
 library("gtools")
-source("logs/initialize_logger.R")
 options(stringsAsFactors = FALSE)
 load("data/trials_02_trimmed.RData")
+
+source("logs/initialize_logger.R")
+logger <- create.logger(logfile = "logs/02_make_elogits.log", level = log4r:::INFO)
 info(logger, "Computing empirical logits")
 
 binning <- list(

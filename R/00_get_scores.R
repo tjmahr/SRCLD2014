@@ -2,13 +2,15 @@
 library("stringr")
 library("plyr")
 library("dplyr", warn.conflicts = FALSE)
-source("logs/initialize_logger.R")
-info(logger, "Loading scores")
 options(stringsAsFactors = FALSE)
+
+source("logs/initialize_logger.R")
+logger <- create.logger(logfile = "logs/00_get_scores.log", level = log4r:::INFO)
+info(logger, "Loading scores")
 
 # Filtering constants
 score_info <- list(
-  minimum_lena_hours = 15,
+  minimum_lena_hours = 12,
   output_file = "data/scores.csv")
 
 source("//l2t.cla.umn.edu/tier2/DataAnalysis/RScripts/GetSiteInfo.r")

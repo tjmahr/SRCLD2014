@@ -1,0 +1,8 @@
+[ 2014-06-09 11:55:06 ] INFO Computing empirical logits 
+[ 2014-06-09 11:55:09 ] INFO Logged List: binning 
+ [ 2014-06-09 11:55:09 ] INFO width: 3 
+ [ 2014-06-09 11:55:09 ] INFO na_location: tail 
+ [ 2014-06-09 11:55:09 ] INFO output_file: data/binned_looks.csv 
+ [ 2014-06-09 11:55:09 ] INFO n_frames_dropped: 1 
+ [ 2014-06-09 11:55:09 ] INFO n_subjects: 175 
+ [ 2014-06-09 11:55:09 ] INFO n_trials: 6848 
