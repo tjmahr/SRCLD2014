@@ -1,12 +1,15 @@
 .PHONY: refresh_foreign
 
-data/scores.csv: R/00_get_scores.R
+data/binned_looks.csv: R/02_make_elogits.R data/trials_02_trimmed.RData
 	Rscript $<
 
 data/trials_02_trimmed.RData: R/01_clean_up_eyetracking.R data/trials_01_raw.RData
 	Rscript $<
 
 data/trials_01_raw.RData: R/00_get_eyetracking.R
+	Rscript $<
+
+data/scores.csv: R/00_get_scores.R
 	Rscript $<
 
 # Refresh all R scripts if logger utility is updated
