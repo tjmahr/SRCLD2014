@@ -3,3 +3,8 @@
  [ 2014-06-10 10:58:13 ] INFO output_file: data/merged.RData 
  [ 2014-06-10 10:58:13 ] INFO n_subjects: 110 
  [ 2014-06-10 10:58:13 ] INFO n_trials: 4450 
+[ 2014-06-10 11:59:11 ] INFO Merging scores into looking data 
+[ 2014-06-10 11:59:12 ] INFO Logged List: merging 
+ [ 2014-06-10 11:59:12 ] INFO output_file: data/merged.RData 
+ [ 2014-06-10 11:59:12 ] INFO n_subjects: 110 
+ [ 2014-06-10 11:59:12 ] INFO n_trials: 4450 

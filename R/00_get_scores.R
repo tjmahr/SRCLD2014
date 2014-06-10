@@ -84,9 +84,15 @@ cdi <- rbind(cdi_uw, cdi_umn) %>%
 # Get adult word counts
 lenas_t1 <- read.csv("//l2t.cla.umn.edu/tier2/DataAnalysis/LENA/timepoint1_awc.csv")
 lenas_t2 <- read.csv("//l2t.cla.umn.edu/tier2/DataAnalysis/LENA/timepoint2_awc.csv")
+lenas_t1_env <- read.csv("//l2t.cla.umn.edu/tier2/DataAnalysis/LENA/timepoint1_audio_env.csv")
+lenas_t2_env <- read.csv("//l2t.cla.umn.edu/tier2/DataAnalysis/LENA/timepoint2_audio_env.csv")
+
+lenas_t1 <- left_join(lenas_t1, lenas_t1_env)
+lenas_t2 <- left_join(lenas_t2, lenas_t2_env)
 
 new_lenas_in_t2 <- anti_join(lenas_t2, lenas_t1, by = "Subject")
-lenas_t1 <- rbind(lenas_t1, new_lenas_in_t2)
+lenas <- rbind(lenas_t1, new_lenas_in_t2) %>%
+  select(Subject, Hours, WordsPerHour, Hours_No_Zeroes, WordsPerHour_No_Zeroes, CTCPerHour, Meaningful)
 
 score_info$used_lena_from_t2 <- new_lenas_in_t2[["Subject"]]
 
@@ -94,7 +100,7 @@ score_info$used_lena_from_t2 <- new_lenas_in_t2[["Subject"]]
 info <- info_t1 %>%
   left_join(., info_t2) %>%
   left_join(., cdi) %>%
-  left_join(., lenas_t1) %>%
+  left_join(., lenas) %>%
   left_join(., imputed_ses)
 
 # Require at least [[12]] LENA hours
