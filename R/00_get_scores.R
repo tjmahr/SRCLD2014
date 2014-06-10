@@ -19,48 +19,54 @@ is_not_zero <- function(x) is.na(x) | x != 0
 
 # Timepoint 2: Get any timepoint2 vocab scores
 info_t2 <- GetSiteInfo(sheet = "TimePoint2") %>%
-  select(Subject = Participant_ID, EVT_Raw_T2 = EVT_raw_time3.4,
-         EVT_GSV_T2 = EVT_GSV, PPVT_GSV_T2 = PPVT_GSV) %>%
-  mutate(Subject = str_trim(Subject)) %>%
-  na.omit
+  select(Subject = Participant_ID,
+         Age_T2 = AgeAtvA_3.4,
+         EVT_Raw_T2 = EVT_raw_time3.4,
+         EVT_Stnd_T2 = EVT_standard_time3.4,
+         EVT_GSV_T2 = EVT_GSV,
+         PPVT_Raw_T2 = PPVT_raw_time3.4,
+         PPVT_Stnd_T2 = PPVT_standard_time3.4,
+         PPVT_GSV_T2 = PPVT_GSV) %>%
+  mutate(Subject = str_trim(Subject),
+         Age_T2 = str_extract(Age_T2, "^\\d\\d")) %>%
+  mutate_each(funs(suppressWarnings(as.numeric(.))), -Subject) %>%
+  na.omit()
 
-
-# Timepoint 1: Little more cleaning required
-info_t1 <- GetSiteInfo() %>% select(
-  Subject = Participant_ID,
-  Exclude, Cimplant, LateTalker, TestedAfter2013Jan15, AAE,
-  Female = female,
-  Age = AgeAtvA_1.2,
-  EVT_GSV_T1 = EVT_GSV,
-  PPVT_GSV_T1 = PPVT_GSV,
-  EVT_Raw_T1 = EVT_raw_time1.2,
-  PPVT_Raw_T1 = PPVT_raw_time1.2,
-  Site, Cohort)
+# Timepoint 1: Child-level variables and vocab scores
+info_t1 <- GetSiteInfo() %>%
+  select(Subject = Participant_ID,
+         Exclude, Cimplant, LateTalker, TestedAfter2013Jan15, AAE,
+         Female = female,
+         Age = AgeAtvA_1.2,
+         EVT_Raw_T1 = EVT_raw_time1.2,
+         EVT_Stnd_T1 = EVT_standard_time1.2,
+         EVT_GSV_T1 = EVT_GSV,
+         PPVT_Raw_T1 = PPVT_raw_time1.2,
+         PPVT_Stnd_T1 = PPVT_standard_time1.2,
+         PPVT_GSV_T1 = PPVT_GSV,
+         Site, Cohort) %>%
+  mutate_each(funs(suppressWarnings(as.numeric(.))), -Subject, -Site)
 score_info$n_raw <- n_distinct(info_t1$Subject)
 
-# Make sure numeric columns are numeric
-num_names <- c("Age", "EVT_Raw_T1", "EVT_GSV_T1",
-               "PPVT_Raw_T1", "PPVT_GSV_T1", "Cohort")
-info_t1[num_names] <- suppressWarnings(colwise(as.numeric)(info_t1[num_names]))
-
-
-# Count exclusions
-exclude_counts <- count(info_t1, c("Exclude", "Cimplant", "LateTalker", "TestedAfter2013Jan15"))
-write.csv(exclude_counts, "logs/exclude_counts.csv")
-
 # Record excluded subjects
-excluded_IDs <- info_t1 %>%
-  filter(Exclude == 1 | Cimplant == 1 | LateTalker == 1 | TestedAfter2013Jan15 == 0)
-excluded_IDs <- excluded_IDs[["Subject"]]
+to_exclude <- info_t1 %>%
+  select(Subject, Exclude, Cimplant, LateTalker, TestedAfter2013Jan15) %>%
+  to_exclusion_rows() %>%
+  filter(!is.na(Value))
+
+tested_ok <- filter(to_exclude, Reason == "TestedAfter2013Jan15" & Value == 1)
+others_ok <- filter(to_exclude, Reason != "TestedAfter2013Jan15" & Value == 0)
+to_exclude <- anti_join(to_exclude, rbind(tested_ok, others_ok))
 
 # Apply subject exclusions
-info_t1 <- info_t1 %>% filter(
-  is_not_one(Exclude),
-  is_not_one(Cimplant),
-  is_not_one(LateTalker),
-  is_not_zero(TestedAfter2013Jan15))
+info_t1 <- info_t1 %>% anti_join(., to_exclude)
 score_info$n_subjects_included <- n_distinct(info_t1$Subject)
 
+# Get SES values
+imputed_ses <- read.csv("//l2t.cla.umn.edu/tier2/ParticipantInfo/SurveyData/ImputedData/imputed_data_20140606.csv")
+names(imputed_ses) <- c("Subject", "Medu", "Income")
+score_info$imputed_ses_used <- TRUE
+imputed_ses$Subject <- substr(imputed_ses$Subject, 1, 4)
 
 # Get word counts from the CDI
 cdi_umn <- read.xlsx(umn_info_path, sheetName = "CDI", startRow = 4) %>%
@@ -81,7 +87,6 @@ lenas_t2 <- read.csv("//l2t.cla.umn.edu/tier2/DataAnalysis/LENA/timepoint2_awc.c
 
 new_lenas_in_t2 <- anti_join(lenas_t2, lenas_t1, by = "Subject")
 lenas_t1 <- rbind(lenas_t1, new_lenas_in_t2)
-write.csv(new_lenas_in_t2, "logs/lenas_used_from_t2.csv", row.names = FALSE)
 
 score_info$used_lena_from_t2 <- new_lenas_in_t2[["Subject"]]
 
@@ -89,29 +94,27 @@ score_info$used_lena_from_t2 <- new_lenas_in_t2[["Subject"]]
 info <- info_t1 %>%
   left_join(., info_t2) %>%
   left_join(., cdi) %>%
-  left_join(., lenas_t1)
+  left_join(., lenas_t1) %>%
+  left_join(., imputed_ses)
 
+# Require at least [[12]] LENA hours
+no_hours <-  filter(info, is.na(Hours)) %>%
+  select(Subject) %>%
+  mutate(Reason = "NoLena", Value = 1)
 
-# Require at least [[15]] LENA hours
-no_hours <- info %>%
-  filter(is.na(Hours))
-no_hours <- no_hours[["Subject"]]
+too_few_hours <-  filter(info, Hours < score_info$minimum_lena_hours) %>%
+  select(Subject, Value = Hours) %>%
+  mutate(Reason = "TooFewHours")
 
-too_few_hours <- info %>%
-  filter(Hours < score_info$minimum_lena_hours)
-write.csv(too_few_hours, "logs/too_few_hours.csv")
-too_few_hours <- too_few_hours[["Subject"]]
+# Save exclusions
+exclusions <- rbind.fill(to_exclude, too_few_hours, no_hours) %>%
+  arrange(Subject, Reason) %>% unique()
+write.csv(exclusions, "logs/exc_scores.csv", row.names = FALSE)
 
-info <- info %>%
-  filter(score_info$minimum_lena_hours <= Hours) %>%
-  mutate(AWC_C = WordsPerHour - mean(WordsPerHour, na.rm = TRUE))
-write.csv(info, score_info$output_file, row.names = FALSE)
+info <- info %>% anti_join(., exclusions) %>% arrange(Subject)
+write.csv(info, score_info$output_file)
 
 score_info$n_lenas_okay <- n_distinct(info$Subject)
-
-log_list(excluded_IDs)
-log_list(no_hours)
-log_list(too_few_hours)
 log_list(score_info)
 
 write.csv(count(info, c("Cohort", "AAE", "Female")), "logs/keeper_counts.csv")

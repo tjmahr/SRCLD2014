@@ -61,15 +61,15 @@ p2 <- qplot(trials_per_subject$freq) +
 ggsave("plots/cleaning/dropped_subjects.png", p2)
 
 
-# Exclude subjects with fewer than [24] trials
-to_drop <- filter(trials_per_subject, freq < clean_gaze_info$min_n_trials)
+# Exclude subjects with fewer than [20] trials
+to_drop <- filter(trials_per_subject, freq < clean_gaze_info$min_n_trials) %>%
+  select(Subject, Value = freq) %>% mutate(Reason = "TooFewTrials")
 trimmed <- anti_join(trimmed, to_drop)
 save(trimmed, file = clean_gaze_info$output_file)
 
-too_few_trials <- structure(as.list(to_drop$freq), names = to_drop$Subject)
-log_list(too_few_trials)
-too_few_trials <- data.frame(num_trials = unlist(too_few_trials))
-write.csv(too_few_trials, "logs/too_few_trials.csv")
+to_drop <- rbind.fill(new_exclusions(), to_drop) %>% unique() %>% arrange(Subject)
+write.csv(to_drop, "logs/exc_eyetracking.csv", row.names = FALSE)
+
 
 # Avg trials per block
 trials_per_block <- trimmed %>%
