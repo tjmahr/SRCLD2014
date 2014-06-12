@@ -18,18 +18,21 @@ library("plyr")
 library("dplyr")
 library("reshape2")
 library("ggplot2")
+library("gtools")
+library("lmSupport")
+
+
+
 
 load("data/merged.RData")
 scores <- merged %>%
-  select(Subject, Age, Female, EVT_GSV_T1, PPVT_GSV_T1, Intercept, Linear, 
+  select(Subject, Age, Female, EVT_GSV_T1, EVT_Raw_T1, PPVT_GSV_T1, Intercept, Linear, 
          Quadratic, WordsPerHour, CTCPerHour, Meaningful, Age, Income, Medu) %>% 
-  unique() %>% filter(!is.na(EVT_GSV_T1), !is.na(WordsPerHour)) 
+  unique() %>% filter(!is.na(EVT_GSV_T1), !is.na(WordsPerHour)) %>% 
+  mutate(Accuracy = inv.logit(Intercept) * 100)
 
-with_ses <- scores %>% filter(!is.na(Income), !is.na(Medu)) %>% 
-  mutate(MeduC = ifelse(Medu < 5, "Below", ifelse(Medu == 5, "College", "Above"))) %>% 
-  mutate(MeduD = ifelse(Medu < 5, -1, 0),
-         MeduC = factor(MeduC,levels = c("Below", "College", "Above")))
-
+with_ses <- scores %>% filter(!is.na(Income), !is.na(Medu))
+  
 ```
 
 
@@ -94,29 +97,130 @@ knitr::kable(descriptives)
 
 
 ```{r}
+with_ses <- with_ses %>% 
+  mutate(MeduC = ifelse(Medu < 5, "Below", ifelse(Medu == 5, "College", "Above")),
+         MeduD = ifelse(Medu < 5, -.5, .5)) %>% 
+  mutate(MeduC = factor(MeduC, levels = c("Below", "College", "Above")),
+         MeduC2 = factor(MeduC, levels = c("College", "Below", "Above")))
 
-with_ses$
 qplot(with_ses$Medu)
 qplot(with_ses$MeduC)
+qplot(factor(with_ses$MeduD))
 
-p <- qplot(data = with_ses, x = Linear, y = EVT_GSV_T1, color = MeduC) 
-p + stat_smooth(method = "lm", se = FALSE)
+
+```
+
+# Significant group differences. Reference group: Less than college
+```{r}
+
+ggplot(data = with_ses, aes(MeduC, EVT_GSV_T1)) + geom_point(position = position_jitter(.2)) + 
+  stat_summary(fun.data=mean_se, size = 1) + labs(title = "Means with SEs")
+qplot(data = with_ses, x = MeduC, y = EVT_GSV_T1, geom="boxplot") 
+qplot(data = with_ses, x = MeduC, y = Linear, geom="boxplot") 
+
+count(with_ses$MeduC)
+lm.caseAnalysis(m_p)
+with_ses[20, ]
+
+se <- function(x) sqrt(var(x)/length(x))
+
+
+with_ses %>% group_by(MeduC) %>% select(EVT_GSV_T1, Intercept, Linear, Meaningful, WordsPerHour, CTCPerHour) %>% summarise_each(funs(mean)) %>% mutate_each(funs(round(., 2)), -MeduC) %>% as.data.frame(t(.))
+
+
+
+
+qplot(x = Age, y = Linear, color = MeduC, data = with_ses) + geom_smooth(method = "lm")
+summary(lm(EVT_GSV_T1 ~ Linear + MeduC + Age, with_ses))
+summary(lm(EVT_GSV_T1 ~ MeduC2, with_ses))
+summary(lm(Linear ~ MeduC, with_ses))
+summary(lm(Meaningful ~ MeduC, with_ses))
+summary(lm(Meaningful ~ MeduC2, with_ses))
+summary(lm(WordsPerHour ~ MeduC, with_ses))
+summary(lm(WordsPerHour ~ MeduC2, with_ses))
+summary(lm(CTCPerHour ~ MeduC, with_ses))
+summary(lm(CTCPerHour ~ MeduC2, with_ses))
+summary(lm(Linear ~ MeduC2, with_ses))
+summary(lm(Intercept ~ MeduC, with_ses))
+```
+
+
+Vocab as a function of processing, at different levels of maternal ed
+```{r}
+fix_slope <- function(slope) {
+  # Change in accuracy (percentage) over 1 second
+  ((inv.logit(slope) * 100) / 2452.128) * 1000
+}
+p <- qplot(data = with_ses, x = fix_slope(Linear), y = EVT_Raw_T1, color = MeduC) 
+p + stat_smooth(method = "lm")
+p <- qplot(data = with_ses, x = Linear, y = EVT_Raw_T1, color = MeduC) 
 p + stat_smooth(method = "lm")
 
-library(lmSupport)
+m_processing <- lm(EVT_GSV_T1 ~ Linear * MeduC, with_ses)
+summary(m_processing)
 
-q <- 
-  qplot(data = with_ses, x = Meaningful, y = EVT_GSV_T1, color = factor(MeduD)) + stat_smooth(method = "lm") 
-m1 <- lm(EVT_GSV_T1 ~ Meaningful + MeduD, with_ses)
-m2 <- lm(EVT_GSV_T1 ~ Meaningful * MeduD, with_ses)
-summary(m1)
-summary(m2)
-m1 <- lm(EVT_GSV_T1 ~ MeduD, with_ses)
-summary(m1)
-m2 <- lm(EVT_GSV_T1 ~ Linear * MeduD, with_ses)
-summary(m2)
+m_processing <- lm(EVT_GSV_T1 ~ Linear + Accuracy*MeduC, with_ses)
+summary(m_processing)
+
+# AWC
+p <- qplot(data = with_ses, x = WordsPerHour, y = EVT_GSV_T1, color = MeduC) 
+p + stat_smooth(method = "lm")
+m_home1 <- lm(EVT_GSV_T1 ~ WordsPerHour*MeduC, with_ses)
+summary(m_home1)
 
 
-lm.deltaR2( m2, m)
+# CTC
+p <- qplot(data = with_ses, x = CTCPerHour, y = EVT_GSV_T1, color = MeduC) 
+p + stat_smooth(method = "lm")
+m_home2 <- lm(EVT_GSV_T1 ~ CTCPerHour*MeduC, with_ses)
+summary(m_home2)
+m_home2 <- lm(EVT_GSV_T1 ~ CTCPerHour*MeduD, with_ses)
+summary(m_home2)
+
+# Meaningful
+p <- qplot(data = with_ses, x = Meaningful, y = EVT_GSV_T1, color = MeduC) 
+p + stat_smooth(method = "lm")
+m_home3 <- lm(EVT_GSV_T1 ~ Meaningful*MeduC, with_ses)
+summary(m_home3)
+m_home3 <- lm(EVT_GSV_T1 ~ Meaningful*MeduD, with_ses)
+summary(m_home3)
+
+# CTC
+p <- qplot(data = with_ses, x = CTCPerHour, y = Accuracy, color = MeduC) 
+p + stat_smooth(method = "lm")
+m_home2 <- lm(Accuracy ~ CTCPerHour*MeduC, with_ses)
+summary(m_home2)
+
+m_home2 <- lm(Accuracy ~ CTCPerHour*MeduD, with_ses)
+summary(m_home2)
+
+p <- qplot(data = with_ses, x = WordsPerHour, y = Accuracy, color = MeduC) 
+p + stat_smooth(method = "lm")
+
+p <- qplot(data = with_ses, x = Meaningful, y = Accuracy, color = MeduC) 
+p + stat_smooth(method = "lm")
+
+
+
+```
+
+Now with dichotomized maternal ed
+```{r}
+p <- qplot(data = with_ses, x = Linear, y = EVT_GSV_T1, color = factor(MeduD))
+p + stat_smooth(method = "lm")
+m_processing <- lm(EVT_GSV_T1 ~ Linear * MeduD, with_ses)
+summary(m_processing)
+
+```
+
+
+
+```{r, eval=FALSE}
+# fix_slope <- function(slope) {
+#   inv.logit(slope) / 2452.128
+# }
+# qplot(data = lj, x = Time - 1000, y = inv.logit(elogit)) + 
+#   geom_abline(aes(slope = fix_slope(Linear), intercept = inv.logit(Intercept))) + facet_wrap("Subject")
+
 ```
 
