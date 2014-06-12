@@ -10,7 +10,7 @@ info(logger, "Loading scores")
 
 # Filtering constants
 score_info <- list(
-  minimum_lena_hours = 12,
+  minimum_lena_hours = 10,
   output_file = "data/scores.csv")
 
 source("//l2t.cla.umn.edu/tier2/DataAnalysis/RScripts/GetSiteInfo.r")

@@ -1,22 +1,11 @@
-[ 2014-06-10 10:45:06 ] INFO Loading scores 
-[ 2014-06-10 10:45:30 ] INFO Logged List: score_info 
- [ 2014-06-10 10:45:30 ] INFO minimum_lena_hours: 12 
- [ 2014-06-10 10:45:30 ] INFO output_file: data/scores.csv 
- [ 2014-06-10 10:45:30 ] INFO n_raw: 224 
- [ 2014-06-10 10:45:30 ] INFO n_subjects_included: 152 
- [ 2014-06-10 10:45:30 ] INFO imputed_ses_used: TRUE 
- [ 2014-06-10 10:45:30 ] INFO used_lena_from_t21: 017L 
- [ 2014-06-10 10:45:30 ] INFO used_lena_from_t22: 002L 
- [ 2014-06-10 10:45:30 ] INFO used_lena_from_t23: 004L 
- [ 2014-06-10 10:45:30 ] INFO n_lenas_okay: 125 
-[ 2014-06-10 11:58:49 ] INFO Loading scores 
-[ 2014-06-10 11:59:10 ] INFO Logged List: score_info 
- [ 2014-06-10 11:59:10 ] INFO minimum_lena_hours: 12 
- [ 2014-06-10 11:59:10 ] INFO output_file: data/scores.csv 
- [ 2014-06-10 11:59:10 ] INFO n_raw: 224 
- [ 2014-06-10 11:59:10 ] INFO n_subjects_included: 152 
- [ 2014-06-10 11:59:10 ] INFO imputed_ses_used: TRUE 
- [ 2014-06-10 11:59:10 ] INFO used_lena_from_t21: 002L 
- [ 2014-06-10 11:59:10 ] INFO used_lena_from_t22: 004L 
- [ 2014-06-10 11:59:10 ] INFO used_lena_from_t23: 017L 
- [ 2014-06-10 11:59:10 ] INFO n_lenas_okay: 125 
+[ 2014-06-11 13:09:17 ] INFO Loading scores 
+[ 2014-06-11 13:09:37 ] INFO Logged List: score_info 
+ [ 2014-06-11 13:09:37 ] INFO minimum_lena_hours: 10 
+ [ 2014-06-11 13:09:37 ] INFO output_file: data/scores.csv 
+ [ 2014-06-11 13:09:37 ] INFO n_raw: 224 
+ [ 2014-06-11 13:09:37 ] INFO n_subjects_included: 152 
+ [ 2014-06-11 13:09:37 ] INFO imputed_ses_used: TRUE 
+ [ 2014-06-11 13:09:37 ] INFO used_lena_from_t21: 004L 
+ [ 2014-06-11 13:09:37 ] INFO used_lena_from_t22: 002L 
+ [ 2014-06-11 13:09:37 ] INFO used_lena_from_t23: 017L 
+ [ 2014-06-11 13:09:37 ] INFO n_lenas_okay: 128 
