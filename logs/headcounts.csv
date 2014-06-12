@@ -1,4 +1,4 @@
 "","n_subjects","n_blocks","n_trials","avg_prop_na"
 "raw",201,377,9048,0.227
 "dropping_trials",201,375,7186,0.0682
-"dropping_subjects",175,342,6848,0.065
+"dropping_subjects",191,363,7116,0.0671

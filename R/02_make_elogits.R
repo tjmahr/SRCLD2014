@@ -40,8 +40,8 @@ binned <- group_by(looks, "Subject") %>%
   na.omit
 
 
-# Include quadratic and linear times
-times <- orthogonal_time(binned$Time, 2)
+# Include cubic, quadratic and linear times
+times <- orthogonal_time(binned$Time, 3)
 binned <- left_join(binned, times)
 write.csv(binned, binning$output_file, row.names = FALSE)
 

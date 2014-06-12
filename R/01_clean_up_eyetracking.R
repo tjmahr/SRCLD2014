@@ -21,7 +21,7 @@ headcount <- function(df) {
 clean_gaze_info <- list(
   input_file = "data/trials_01_raw.RData",
   missing_data_cutoff = .5,
-  min_n_trials = 20,
+  min_n_trials = 14,
   output_file = "data/trials_02_trimmed.RData")
 log_list(clean_gaze_info)
 
