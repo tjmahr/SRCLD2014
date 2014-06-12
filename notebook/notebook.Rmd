@@ -1,0 +1,77 @@
+---
+title: "Notebook"
+output:
+  html_document:
+    fig_width: 7
+---
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+library("knitr")
+opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
+opts_knit$set(root.dir = "../")
+```
+
+```{r Load}
+library("plyr")
+library("dplyr")
+library("reshape2")
+library("ggplot2")
+
+load("data/merged.RData")
+scores <- merged %>%
+  select(Subject, Age, Female, EVT_GSV_T1, PPVT_GSV_T1,
+         WordsPerHour, CTCPerHour, Meaningful, Age, Income, Medu) %>% 
+  unique() %>% filter(!is.na(EVT_GSV_T1), !is.na(WordsPerHour)) 
+
+with_ses <- scores %>% filter(!is.na(Income), !is.na(Medu))
+```
+
+
+```{r Subject summary}
+d <- list()
+d$n <- n_distinct(with_ses$Subject)
+d$boys <- nrow(filter(with_ses, Female == 0))
+d$girls <- d$n - d$boys
+d$age_min <- min(with_ses$Age)
+d$age_max <- max(with_ses$Age)
+```
+
+
+```{r Sample descriptives}
+pp_mean_sd <- function(xs) sprintf("%s (%s)", round(mean(xs), 2), round(sd(xs), 2))
+pp_range <- function(xs) sprintf("%s-%s", round(min(xs), 2), round(max(xs), 2))
+
+mean_sd_table <- with_ses %>% summarise_each(funs(pp_mean_sd), -Subject, -Female) 
+mean_pp_range <- with_ses %>% summarise_each(funs(pp_range), -Subject, -Female) 
+described <- rbind(mean_sd_table, mean_pp_range)
+
+row.names(described) <- c("Mean (SD)", "Range")
+
+descriptives <- described %>% 
+  select(-PPVT_GSV_T1,
+    `Age (months)` = Age, 
+    `EVT Growth Scale Value` = EVT_GSV_T1,
+    `Hourly Conversation Turns` = CTCPerHour,
+    `Hourly Adult Words` = WordsPerHour,
+    `Proportion of Meaningful Speech` = Meaningful,
+    `Income (6-step scale)` = Income,
+    `Maternal Ed. (7-step scale)` = Medu) %>% t %>% as.data.frame
+```
+
+
+### Participants
+
+* `r d$n` preschoolers (`r d$boys` boys, `r d$girls` girls), `r d$age_min`--`r d$age_max` months in age
+
+```{r, results='asis'}
+knitr::kable(descriptives)
+```
+
+
+
+```{r}
+qplot(with_ses$Medu)
+```
+

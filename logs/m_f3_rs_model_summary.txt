@@ -1,0 +1,33 @@
+Linear mixed model fit by maximum likelihood  ['lmerMod']
+Formula: elogit ~ 1 + ot1 + ot2 + ot3 + (1 + ot1 + ot2 | Subject)
+   Data: looks
+Weights: 1/elogit_weights
+Control: lmerControl(optimizer = "bobyqa")
+
+     AIC      BIC   logLik deviance df.resid 
+  -889.5   -819.8    455.8   -911.5     4189 
+
+Scaled residuals: 
+    Min      1Q  Median      3Q     Max 
+-4.2108 -0.6437 -0.0263  0.5927  3.4454 
+
+Random effects:
+ Groups   Name        Variance Std.Dev. Corr       
+ Subject  (Intercept) 0.1365   0.3694              
+          ot1         1.6620   1.2892    0.32      
+          ot2         0.4675   0.6837   -0.14 -0.13
+ Residual             0.6673   0.8169              
+Number of obs: 4200, groups: Subject, 140
+
+Fixed effects:
+            Estimate Std. Error t value
+(Intercept) -0.31800    0.03136 -10.141
+ot1          2.80054    0.11016  25.422
+ot2         -0.18730    0.05994  -3.125
+ot3         -0.35696    0.01497 -23.850
+
+Correlation of Fixed Effects:
+    (Intr) ot1    ot2   
+ot1  0.316              
+ot2 -0.128 -0.123       
+ot3  0.001  0.007 -0.015
