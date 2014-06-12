@@ -21,11 +21,15 @@ library("ggplot2")
 
 load("data/merged.RData")
 scores <- merged %>%
-  select(Subject, Age, Female, EVT_GSV_T1, PPVT_GSV_T1,
-         WordsPerHour, CTCPerHour, Meaningful, Age, Income, Medu) %>% 
+  select(Subject, Age, Female, EVT_GSV_T1, PPVT_GSV_T1, Intercept, Linear, 
+         Quadratic, WordsPerHour, CTCPerHour, Meaningful, Age, Income, Medu) %>% 
   unique() %>% filter(!is.na(EVT_GSV_T1), !is.na(WordsPerHour)) 
 
-with_ses <- scores %>% filter(!is.na(Income), !is.na(Medu))
+with_ses <- scores %>% filter(!is.na(Income), !is.na(Medu)) %>% 
+  mutate(MeduC = ifelse(Medu < 5, "Below", ifelse(Medu == 5, "College", "Above"))) %>% 
+  mutate(MeduD = ifelse(Medu < 5, -1, 0),
+         MeduC = factor(MeduC,levels = c("Below", "College", "Above")))
+
 ```
 
 
@@ -57,9 +61,27 @@ descriptives <- described %>%
     `Hourly Adult Words` = WordsPerHour,
     `Proportion of Meaningful Speech` = Meaningful,
     `Income (6-step scale)` = Income,
-    `Maternal Ed. (7-step scale)` = Medu) %>% t %>% as.data.frame
+    `Maternal Ed. (6-step scale)` = Medu) %>% t %>% as.data.frame
 ```
 
+
+**Mat. Ed. coding**
+
+1. Less than high school
+2. GED
+3. High school diploma
+4. Trade school, technical/associates degree, some college
+5. College degree
+6. Graduate degree
+
+**Income coding**
+
+1. Below $20,000
+2. $20,000 - $40,000
+3. $41,000 - $60,000
+4. $61,000 - $100,000
+5. $101,000 - $200,000
+6. More than $200,000
 
 ### Participants
 
@@ -72,6 +94,29 @@ knitr::kable(descriptives)
 
 
 ```{r}
+
+with_ses$
 qplot(with_ses$Medu)
+qplot(with_ses$MeduC)
+
+p <- qplot(data = with_ses, x = Linear, y = EVT_GSV_T1, color = MeduC) 
+p + stat_smooth(method = "lm", se = FALSE)
+p + stat_smooth(method = "lm")
+
+library(lmSupport)
+
+q <- 
+  qplot(data = with_ses, x = Meaningful, y = EVT_GSV_T1, color = factor(MeduD)) + stat_smooth(method = "lm") 
+m1 <- lm(EVT_GSV_T1 ~ Meaningful + MeduD, with_ses)
+m2 <- lm(EVT_GSV_T1 ~ Meaningful * MeduD, with_ses)
+summary(m1)
+summary(m2)
+m1 <- lm(EVT_GSV_T1 ~ MeduD, with_ses)
+summary(m1)
+m2 <- lm(EVT_GSV_T1 ~ Linear * MeduD, with_ses)
+summary(m2)
+
+
+lm.deltaR2( m2, m)
 ```
 
