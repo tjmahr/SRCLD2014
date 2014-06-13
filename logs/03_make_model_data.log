@@ -3,3 +3,8 @@
  [ 2014-06-12 08:36:38 ] INFO gca_trials: 5277 
  [ 2014-06-12 08:36:38 ] INFO gca_subjects: 140 
  [ 2014-06-12 08:36:38 ] INFO scores_n_subjects: 121 
+[ 2014-06-13 11:55:36 ] INFO Merging scores into looking data 
+[ 2014-06-13 11:55:39 ] INFO Logged List: merging 
+ [ 2014-06-13 11:55:39 ] INFO gca_trials: 5277 
+ [ 2014-06-13 11:55:39 ] INFO gca_subjects: 140 
+ [ 2014-06-13 11:55:39 ] INFO scores_n_subjects: 121 
