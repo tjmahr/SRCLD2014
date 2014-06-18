@@ -1,13 +1,22 @@
 ---
-title: "Notebook"
+title: "Poster Output"
 output:
   html_document:
     fig_width: 7
+    fig_height: 7
+    toc: true
+    toc_depth: 2
+  md_document:
+    variant: markdown_github
+    fig_width: 7
+    fig_height: 7
+    toc: true
+    toc_depth: 2
 ---
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+_This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>._
 
-```{r, echo = FALSE, message = FALSE, warning = FALSE}
+```{r, message = FALSE, warning = FALSE}
 library("knitr")
 opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 opts_knit$set(root.dir = "../")
@@ -18,19 +27,14 @@ library("plyr")
 library("dplyr")
 library("ggplot2")
 library("lmSupport")
-library("ascii")
 library("stargazer")
 
-# Pretty-print "Mean (SD)"
-pp_mean_sd <- function(xs) sprintf("%.2f (%.2f)", mean(xs), sd(xs))
-summary2 <- function(m) print(ascii(summary(m), digits = 4), type = "pandoc")
-
 load("data/scored.RData")
-
 ```
 
 
 ```{r Subject summary}
+# Participant summary (bullet)
 d <- list()
 d$n <- n_distinct(scores$Subject)
 d$boys <- nrow(filter(scores, Female == 0))
@@ -39,227 +43,135 @@ d$age_min <- min(scores$Age)
 d$age_max <- max(scores$Age)
 ```
 
-**Mat. Ed. coding**
+```{r Mean-SD table}
+# Pretty-print "Mean (SD)"
+pp_mean_sd <- function(xs) sprintf("%.2f (%.2f)", mean(xs), sd(xs))
 
-1. Less than high school
-2. GED
-3. High school diploma
-4. Trade school, technical/associates degree, some college
-5. College degree
-6. Graduate degree
+table_scores <- scores %>% 
+  select(-Female, -Subject, -Income, -Intercept, -Linear, -ends_with("2"))
+
+# Everyone
+mean_sd_table1 <- table_scores %>% 
+  summarise_each(funs(pp_mean_sd), -starts_with("Medu")) %>% 
+  mutate(MeduC = "All")
+
+# By Maternal Education
+mean_sd_table2 <- table_scores %>% group_by(MeduC) %>%
+  summarise_each(funs(pp_mean_sd), -starts_with("Medu")) 
+
+# Counts
+n1 <- table_scores %>% summarise(MeduC = "All", n = n())
+n2 <- table_scores %>% group_by(MeduC) %>% summarise(n = n()) %>% rbind(., n1)
+
+described <- rbind(mean_sd_table2, mean_sd_table1) %>% left_join(., n2)
+row.names(described) <- described$MeduC
+
+descriptives <- described %>% 
+  select(`N` = n,
+         `Age (months)` = Age, 
+         `EVT Raw` = EVT_Raw_T1,
+         `EVT Standard` = EVT_Stnd_T1,
+         `LWL Accuracy` = Accuracy,
+         `EVT Growth Scale Value` = EVT_GSV_T1,
+         `Hourly Conversation Turns` = CTCPerHour,
+         `Hourly Adult Words` = WordsPerHour,
+         `Proportion of Meaningful Speech` = Meaningful) %>% 
+  t %>% as.data.frame
+```
 
 
-**Participants**
+## Participant Summary
 
 * `r d$n` preschoolers (`r d$boys` boys, `r d$girls` girls), `r d$age_min`--`r d$age_max` months in age
 
-**Processing by Maternal Education.** No effect of group on slope or intercept, when controlling for age. 
+```{r, results='asis'}
+kable(descriptives)
+```
+
+## Models
+
+### Processing by Maternal Education
+
+No effect of group on accuracy. A small effect of maternal education emerges when you control for age.
 
 ```{r, echo = TRUE, results = "asis"}
-m1 <- lm(Linear ~ MeduC, scores)
-m2 <- lm(Accuracy ~ MeduC, scores)
-m3 <- lm(Linear ~ MeduC + I(Age-32), scores)
-m4 <- lm(Accuracy ~ MeduC + I(Age-32), scores)
-stargazer(m1, m2, m3, m4, type = "html")
-summary2(m4)
+# Set default table options
+stargazer2 <- function(..., type = "html") {
+  stargazer(..., type = type, intercept.bottom = FALSE, ci = TRUE, omit.stat = "n")
+}
 
-stargazer(lm(EVT_GSV_T1 ~ MeduC*Accuracy + I(Meaningful*100), scores),  type = "html", intercept.bottom = FALSE, single.row = TRUE)
-
+m1 <- lm(Accuracy2 ~ Age2, scores)
+m2 <- lm(Accuracy2 ~ MeduC, scores)
+m3 <- lm(Accuracy2 ~ MeduC + Age2, scores)
+stargazer2(m1, m2, m3)
 ```
 
 
-**Input by Maternal Education.** Insignificnant difference between college and below-college group in words per hour
+### Processing by Input
 
 ```{r, echo = TRUE, results = "asis"}
-
-m5 <- lm(Accuracy ~ MeduC, scores)
-m6 <- lm(Accuracy ~ WordsPerHour, scores)
-m7 <- lm(Accuracy ~ CTCPerHour, scores)
-m8 <- lm(Accuracy ~ Meaningful, scores)
-
-x <- lm(EVT_GSV_T1 ~ WordsPerHour + CTCPerHour + Meaningful + MeduC, scores)
-summary(x)
-lm.sumSquares(x)
-lm.deltaR2(lm(EVT_GSV_T1 ~ MeduC, scores), x)
-
-summary(lm(EVT_GSV_T1 ~ MeduC, scores))
-summary(lm(EVT_GSV_T1 ~ Meaningful, scores))
-summary(lm(EVT_GSV_T1 ~ WordsPerHour, scores))
-summary(lm(EVT_GSV_T1 ~ CTCPerHour, scores))
-summary(lm(EVT_GSV_T1 ~ Meaningful * MeduC, scores))
-
-summary(lm(EVT_GSV_T1 ~ CTCPerHour * MeduC, scores))
-
-summary(lm(EVT_GSV_T1 ~ WordsPerHour * MeduC, scores))
-
-summary(lm(EVT_GSV_T1 ~ CTCPerHour * MeduC, scores))
-
-summary(lm(EVT_GSV_T1 ~ WordsPerHour, scores))
-
-m5 <- lm(EVT_GSV_T1 ~ MeduC + WordsPerHour + CTCPerHour + Meaningful, scores)
-summary(m5)
-stargazer(anova(m5), type = "text")
-# stargazer(m5, m6, m7, type = "text")
-
-
-# m5 <- lm(Accuracy ~ CTCPerHour + WordsPerHour + Meaningful, scores)
-# m5 <- lm(Accuracy ~ CTCPerHour + WordsPerHour + Meaningful, scores)
-# m5 <- lm(Meaningful ~ MeduC, scores)
-# m6 <- lm(CTCPerHour ~ MeduC, scores)
-# m7 <- lm(WordsPerHour ~ MeduC, scores)
-# # Change reference group to College
-# stargazer(m5, m6, m7, type = "text")
-```
-
-
-**Maternal ed on vocab.**: Significant difference effect of group
-
-```{r, results = "asis"}
-m9 <- lm(EVT_GSV_T1 ~ MeduC, scores)
-m9 <- lm(EVT_GSV_T1 ~ MeduC * Accuracy + Meaningful, scores)
-summary(m9)
-stargazer(m9, type = "html")
-```
-
-```{r, results = "asis"}
-m9 <- lm(EVT_GSV_T1 ~ CTCPerHour, scores)
-m9 <- lm(EVT_GSV_T1 ~ MeduC * CTCPerHour, scores)
-m10 <- lm(EVT_GSV_T1 ~ Accuracy * MeduC, scores)
-summary(m9)
-stargazer(m9, type = "text", dep.var.labels = c("Vocabulary Size"), covariate.labels = c("College", "Above College", "Hourly Conv. Turns", "College x Turns", "Above College x Turns", "Below College (ref. group)"))
-```
-
-
-
-**Home on processing**: No effect of input or maternal ed on intercept or slope 
-
-```{r}
 # No effect of input on slope
-summary(lm(Linear ~ WordsPerHour, scores))
-summary(lm(Linear ~ Meaningful, scores))
-summary(lm(Linear ~ CTCPerHour, scores))
-
-summary(lm(Accuracy ~ WordsPerHour, scores))
-summary(lm(Accuracy ~ Meaningful, scores))
-summary(lm(Accuracy ~ CTCPerHour, scores))
-
-summary(lm(Accuracy ~ MeduC + WordsPerHour, scores))
-summary(lm(Accuracy ~ MeduC * Meaningful, scores))
-# Only interaction seems to happen here, but the effects are so weak.
-summary(lm(Accuracy ~ MeduC * CTCPerHour, scores))
+m4a <- lm(Accuracy2 ~ WordsPerHour2, scores)
+m4b <- lm(Accuracy2 ~ Meaningful2, scores)
+m4c <- lm(Accuracy2 ~ CTCPerHour2, scores)
+stargazer2(m4a, m4b, m4c)
 ```
 
 
-**Home on vocab**
+### Input by Maternal Education
 
+Insignificant difference between college and below-college group in words per hour.
 
-```{r}
-summary(lm(EVT_GSV_T1 ~ WordsPerHour + MeduC, scores))
-summary(lm(EVT_GSV_T1 ~ WordsPerHour * MeduC, scores))
-qplot(data = scores, x = WordsPerHour, y = EVT_GSV_T1, color = MeduC) + stat_smooth(method = "lm")
-
-summary(lm(EVT_GSV_T1 ~ Meaningful + MeduC, scores))
-summary(lm(EVT_GSV_T1 ~ Meaningful * MeduD, scores))
-qplot(data = scores, x = Meaningful, y = EVT_GSV_T1, color = MeduC) + stat_smooth(method = "lm")
-
-summary(lm(EVT_GSV_T1 ~ CTCPerHour + MeduC, scores))
-summary(lm(EVT_GSV_T1 ~ CTCPerHour * MeduC, scores))
-qplot(data = scores, x = CTCPerHour, y = EVT_GSV_T1, color = MeduC) + stat_smooth(method = "lm")
+```{r, echo = TRUE, results = "asis"}
+m4 <- lm(Meaningful2 ~ MeduC, scores)
+m5 <- lm(CTCPerHour2 ~ MeduC, scores)
+m6 <- lm(WordsPerHour2 ~ MeduC, scores)
+stargazer2(m4, m5, m6)
 ```
 
 
 
-**Processing on vocab**
-A child from a low SES family who is successful on all the tasks, behavior, executive function. Task performance is more related to word knowledge.
-A child from a high SES family who is less successful on all the tasks, behavior, executive function.
+### Vocabulary by Maternal Education, Input and Processing
 
-```{r}
-summary(lm(EVT_GSV_T1 ~ Accuracy, scores))
-summary(lm(EVT_GSV_T1 ~ Linear, scores))
-summary(lm(EVT_GSV_T1 ~ Accuracy2 + Linear2, scores))
-summary(lm(EVT_GSV_T1 ~ Accuracy2 + Linear2 + Age2, scores))
+* Group moderates effect of conversational turns (slopes decrease as maternal education increases, although the interaction is only significant in the high maternal education group).
+* Proportion of meaningful speech is strongest home language predictor
 
-# Accuracy is less predictive of vocab as Medu increases?
-summary(lm(EVT_GSV_T1 ~ Accuracy + MeduC, scores))
-summary(lm(EVT_GSV_T1 ~ Accuracy2 * MeduC, scores))
-qplot(data = scores, x = Accuracy, y = EVT_GSV_T1, color = MeduC) + stat_smooth(method = "lm")
-
-# No relationship with slope
-summary(lm(EVT_GSV_T1 ~ Linear2 * MeduC, scores))
-qplot(data = scores, x = Linear, y = EVT_GSV_T1, color = MeduC) + stat_smooth(method = "lm")
-
-
-summary(lm(EVT_GSV_T1 ~ Linear, scores))
-summary(lm(EVT_GSV_T1 ~ Accuracy2 + Linear2, scores))
-summary(lm(EVT_GSV_T1 ~ Accuracy2*MeduC, scores))
-summary(lm(EVT_GSV_T1 ~ Accuracy2*MeduC + Linear2, scores))
+```{r, echo = TRUE, results = "asis"}
+m07 <- lm(EVT_GSV_T1 ~ MeduC, scores)
+m08 <- lm(EVT_GSV_T1 ~ CTCPerHour2, scores)
+m09 <- lm(EVT_GSV_T1 ~ CTCPerHour2 * MeduC, scores)
+stargazer2(m07, m08, m09)
+m10 <- lm(EVT_GSV_T1 ~ Meaningful2, scores)
+m11 <- lm(EVT_GSV_T1 ~ Meaningful2 * MeduC, scores)
+stargazer2(m07, m10, m11)
+m12 <- lm(EVT_GSV_T1 ~ WordsPerHour2, scores)
+m13 <- lm(EVT_GSV_T1 ~ WordsPerHour2 * MeduC, scores)
+stargazer2(m07, m12, m13)
 ```
 
 
-```{r}
-scores$Meaningful4 <- cut(scores$Meaningful, 2)
-scores$Accuracy4 <- cut(scores$Accuracy, 2)
+The best fitting model allows maternal education to moderate the effect of processing on vocabulary while controlling for home language input.
+
+```{r, echo = TRUE, results = "asis"}
+other_model <-  lm(EVT_GSV_T1 ~ MeduC * Accuracy, scores)
+# Use uncentered accuracy scores. Scale meaningful into a percentage
+best_model <- lm(EVT_GSV_T1 ~ MeduC * Accuracy + I(Meaningful * 100), scores)
+stargazer2(other_model, best_model)
 ```
 
-
-Everything together
-
-```{r}
-summary(lm(EVT_GSV_T1 ~ MeduC + Accuracy + CTCPerHour, scores))
-summary(lm(EVT_GSV_T1 ~ Accuracy + CTCPerHour*MeduC, scores))
-summary(lm(EVT_GSV_T1 ~ MeduC*Accuracy2 + CTCPerHour, scores))
-
-low_ses <- filter(scores, MeduC == "Below")
-summary(lm(Accuracy ~ Meaningful, low_ses))
-summary(lm(Accuracy ~ WordsPerHour, low_ses))
-summary(lm(Accuracy ~ MeduC * CTCPerHour, scores))
-
-
-summary(lm(Accuracy ~ MeduC + EVT_GSV_T1 + WordsPerHour, scores))
-summary(lm(EVT_GSV_T1 ~ Accuracy + WordsPerHour*MeduC, scores))
-
-
-summary(lm(EVT_GSV_T1 ~ MeduC*CTCPerHour, scores))
-
-
-
-summary(lm(EVT_GSV_T1 ~ MeduC*Accuracy + Meaningful, scores))
-summary(lm(EVT_GSV_T1 ~ MeduC*Accuracy + Meaningful, scores))
-
-summary(lm(EVT_GSV_T1 ~ MeduD*Meaningful, scores))
-
-scores$MeduD
-qplot(data = scores, x = CTCPerHour, y = EVT_GSV_T1, color = MeduC) + 
-  stat_smooth(method = "lm", se = FALSE) + theme_bw()
-
-qplot(data = scores, x = Meaningful, y = EVT_GSV_T1, color = MeduC) + 
-  stat_smooth(method = "lm", se = FALSE) + theme_bw()
-
-m_acc <- lm(EVT_GSV_T1 ~ MeduC*Accuracy, scores)
-summary(m_acc)
-
-
-m_meaningful <- lm(EVT_GSV_T1 ~ MeduC*Accuracy + Meaningful, scores)
-summary(m_meaningful)
-scores$InputEffect <- scores$Meaningful * coef(m_meaningful)["Meaningful"]
-scores$InputAdjusted <- scores$EVT_GSV_T1 - scores$InputEffect
-summary(lm(InputAdjusted ~ MeduC*Accuracy, scores))
-
-
-
-
+```{r, echo = TRUE}
+anova(other_model, best_model)
 ```
-
-
-
-
-
-
-
 
 
 ## Poster Plots
-```{r, fig.width=6. fig.height=4}
+
+```{r, echo = TRUE}
+# Control for meaningful effect in secon plot
+m_meaningful <- lm(EVT_GSV_T1 ~ MeduC*Accuracy + Meaningful, scores)
+scores$InputEffect <- scores$Meaningful * coef(m_meaningful)["Meaningful"]
+scores$InputAdjusted <- scores$EVT_GSV_T1 - scores$InputEffect
+
 library("scales")
 p <- qplot(data = scores, x = Accuracy / 100, y = InputAdjusted, color = MeduC) + 
   stat_smooth(method = "lm", alpha = .2) + theme_bw() + 
@@ -269,10 +181,7 @@ p <- qplot(data = scores, x = Accuracy / 100, y = InputAdjusted, color = MeduC) 
        y = "EVT Growth Scale Value (adj. for language input)", 
        color = "Maternal\nEducation")
 p
-ggsave("plots/moderation.png", p, width = 5, height = 5)
-
-
-
+ggsave("plots/moderation.png", p, width = 7, height = 7)
 
 p2 <- qplot(data = scores, x = CTCPerHour, y = EVT_GSV_T1, color = MeduC) + 
   stat_smooth(method = "lm", alpha = .2) + theme_bw() + 
@@ -280,22 +189,10 @@ p2 <- qplot(data = scores, x = CTCPerHour, y = EVT_GSV_T1, color = MeduC) +
   labs(x = "Conversational turns per hour", 
        y = "EVT Growth Scale Value", 
        color = "Maternal\nEducation")
-ggsave("plots/turns.png", p2, width = 5, height = 5)
-
-
-
-
-
-
-
-
-
-
-
+p2
+ggsave("plots/turns.png", p2, width = 7, height = 7)
 ```
 
-```{r}
-
+```{r, echo = TRUE}
+sessionInfo()
 ```
-
-

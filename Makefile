@@ -1,5 +1,11 @@
 .PHONY: refresh_foreign
 
+notebook/notebook.html notebook/notebook.md: R/make_notebook.R data/scored.RData notebook/notebook.Rmd
+	Rscript $<
+
+data/scored.RData: R/04_make_poster_data.R data/merged.RData
+	Rscript $<
+
 data/merged.RData: R/03_make_model_data.R data/binned_looks.csv data/scores.csv logs/exclusions.csv
 	Rscript $<
 
